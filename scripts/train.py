@@ -18,6 +18,8 @@ import os
 import tensorflow as tf
 import time
 
+tf.disable_v2_behavior()
+
 from cosernn.models import CoSeRNN
 from cosernn.helpers import make_dataset_generator_onerow as make_dataset_generator
 
