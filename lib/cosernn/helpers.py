@@ -12,7 +12,10 @@
 # limitations under the License.
 
 import numpy as np
-import tensorflow as tf
+
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
+
 
 PLATFORMS = {'mobile':0, 'desktop':1, 'speaker':2, 'web':3, 'tablet':4, 'tv':5, 'remaining':6}
 SPOTIFY_TOP_CONTEXT = {
@@ -92,46 +95,58 @@ def extract_fn_onerow(data_record):
 def make_dataset_generator_onerow(sess, handle, pargs, dataset_paths, is_test):
     maxlen = pargs['max_length']
 
-    output_t = tuple([tf.int32, tf.int32, tf.int32, tf.int32,  # history list: day, hour, minute, device
-                      tf.int32,  # history list: average session vector
-                      tf.float32,  # mask
-                      tf.float32,  #mask split
-                      tf.int32,  # user
-                      tf.int32,
-                      tf.int32,
-                      tf.int32,
-                      tf.float32,  # mask split above
-                      tf.float32, # time since last sess
-                      tf.int32, # top context
-                      tf.float32,
-                      tf.int64
-                      ])
+    output_t = tuple([
+        tf.int32,   # day_hist
+        tf.int32,   # hour_hist
+        tf.int32,   # minute_hist
+        tf.int32,   # device_hist
+        tf.int32,   # hist_avgs
+        tf.float32, # mask
+        tf.float32, # mask_split
+        tf.int32,   # user
+        tf.int32,   # histavgs_skip
+        tf.int32,   # histavgs_listen
+        tf.int32,   # histavgs_feedback
+        tf.float32, # mask_split_above
+        tf.float32, # time_since_last_session
+        tf.int32,   # top_context
+        tf.float32, # number_of_tracks_in_sessions
+        tf.int64    # session_start_time
+    ])
 
-    filenames = dataset_paths
-    print(len(filenames), 'tfrecord files')
+    print(len(dataset_paths), 'tfrecord files')
 
-    output_s = tuple(
-        [tf.TensorShape([None, maxlen]), tf.TensorShape([None, maxlen]), tf.TensorShape([None, maxlen]), tf.TensorShape([None, maxlen]),
-         tf.TensorShape([None, maxlen, 10]),
-         tf.TensorShape([None, maxlen]),
-         tf.TensorShape([None, maxlen]),
-         tf.TensorShape([None, ]),
-         tf.TensorShape([None, maxlen, 10]),
-         tf.TensorShape([None, maxlen, 10]),
-         tf.TensorShape([None, maxlen, 10]),
-         tf.TensorShape([None, maxlen]),
-         tf.TensorShape([None, maxlen]),
-         tf.TensorShape([None, maxlen]),
-         tf.TensorShape([None, maxlen]),
-         tf.TensorShape([None, maxlen])
-         ])
+    output_s = tuple([
+        tf.TensorShape([None, maxlen]),       # day_hist
+        tf.TensorShape([None, maxlen]),       # hour_hist
+        tf.TensorShape([None, maxlen]),       # minute_hist
+        tf.TensorShape([None, maxlen]),       # device_hist
+        tf.TensorShape([None, maxlen, 10]),   # hist_avgs
+        tf.TensorShape([None, maxlen]),       # mask
+        tf.TensorShape([None, maxlen]),       # mask_split
+        tf.TensorShape([None, ]),             # user
+        tf.TensorShape([None, maxlen, 10]),   # histavgs_skip
+        tf.TensorShape([None, maxlen, 10]),   # histavgs_listen
+        tf.TensorShape([None, maxlen, 10]),   # histavgs_feedback
+        tf.TensorShape([None, maxlen]),       # mask_split_above
+        tf.TensorShape([None, maxlen]),       # time_since_last_session
+        tf.TensorShape([None, maxlen]),       # top_context
+        tf.TensorShape([None, maxlen]),       # number_of_tracks_in_sessions
+        tf.TensorShape([None, maxlen])        # session_start_time
+    ])
 
-    dataset = tf.data.Dataset.from_tensor_slices(filenames)
+    # Make sure filenames are a tf.string tensor
+    filenames = tf.constant(dataset_paths, dtype=tf.string)
+
+    # Create a TFRecordDataset directly from the string tensor
+    dataset = tf.data.TFRecordDataset(filenames)
+
     if not is_test:
         dataset = dataset.repeat()
         dataset = dataset.shuffle(1000)
-    dataset = dataset.flat_map(tf.data.TFRecordDataset)
+
     dataset = dataset.map(extract_fn_onerow, num_parallel_calls=3)
+
     if not is_test:
         dataset = dataset.shuffle(1000)
 
@@ -144,7 +159,8 @@ def make_dataset_generator_onerow(sess, handle, pargs, dataset_paths, is_test):
         dataset = dataset.prefetch(1)
     else:
         dataset = dataset.prefetch(10)
-    iterator = dataset.make_initializable_iterator() #tf.compat.v1.data.make_initializable_iterator(dataset) #
+
+    iterator = dataset.make_initializable_iterator()
 
     if handle is not None:
         generic_iter = tf.data.Iterator.from_string_handle(handle, output_t, output_s)
@@ -154,3 +170,4 @@ def make_dataset_generator_onerow(sess, handle, pargs, dataset_paths, is_test):
         specific_handle = None
 
     return specific_handle, iterator, generic_iter
+
