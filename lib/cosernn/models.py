@@ -190,8 +190,8 @@ class CoSeRNN():
         :param name_add: unique name for the layers
         :return: Output of the last layer
         '''
-        output = tf.layers.dense(logits, units, name=name_add+"_l1", reuse=tf.AUTO_REUSE, activation='relu')
-        output = tf.layers.dense(output, units, name=name_add+"_l2", reuse=tf.AUTO_REUSE, activation='relu')
+        output = tf.compat.v1.keras.layers.Dense((logits, units, name=name_add+"_l1", reuse=tf.AUTO_REUSE, activation='relu')
+        output = tf.compat.v1.keras.layers.Dense((output, units, name=name_add+"_l2", reuse=tf.AUTO_REUSE, activation='relu')
         output = tf.nn.dropout(output, keep_prob=self.keep_prob)
         return output
 
