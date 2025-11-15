@@ -205,14 +205,14 @@ class CoSeRNN():
         :param activation: activation function
         :return: embedding of the context features
         '''
-        mu = tf.layers.dense(context, size, name="mu_"+name, reuse=tf.AUTO_REUSE)
-        std = tf.layers.dense(context, size, name="std_"+name, reuse=tf.AUTO_REUSE, activation='sigmoid')
+        mu = tf.compat.v1.keras.layers.Dense(context, size, name="mu_"+name, reuse=tf.AUTO_REUSE)
+        std = tf.compat.v1.keras.layers.Dense(context, size, name="std_"+name, reuse=tf.AUTO_REUSE, activation='sigmoid')
         eps_std = tf.cond(self.is_training, lambda:1.0, lambda: 0.0)
         eps = tf.random.normal(tf.shape(std), dtype=tf.float32, mean=0., stddev=eps_std, name='epsilon')
         z = mu + tf.exp(std / 2) * eps
 
         if not variational:
-            z = tf.layers.dense(context, size, name="trans_init_"+name, activation=activation, reuse=tf.AUTO_REUSE)
+            z = tf.compat.v1.keras.layers.Dense(context, size, name="trans_init_"+name, activation=activation, reuse=tf.AUTO_REUSE)
 
         return z
 
@@ -225,14 +225,14 @@ class CoSeRNN():
         :param name_add: unique name
         :return: Output of the transformation of the input, which is used as the predicted target in CoSeRNN
         '''
-        mu = tf.layers.dense(input, 40, name=name_add+"_mu_"+name, reuse=tf.AUTO_REUSE)
-        std = tf.layers.dense(input, 40, name=name_add+"_std_"+name, reuse=tf.AUTO_REUSE, activation='sigmoid')
+        mu = tf.compat.v1.keras.layers.Dense(input, 40, name=name_add+"_mu_"+name, reuse=tf.AUTO_REUSE)
+        std = tf.compat.v1.keras.layers.Dense(input, 40, name=name_add+"_std_"+name, reuse=tf.AUTO_REUSE, activation='sigmoid')
         eps_std = tf.cond(self.is_training, lambda:1.0, lambda: 0.0)
         eps = tf.random_normal(tf.shape(std), dtype=tf.float32, mean=0., stddev=eps_std, name= name_add+'_epsilon')
         z = mu + tf.exp(std / 2) * eps
 
         if not variational:
-            z = tf.layers.dense(input, 40, name=name_add+"_target_output"+name, reuse=tf.AUTO_REUSE)
+            z = tf.compat.v1.keras.layers.Dense(input, 40, name=name_add+"_target_output"+name, reuse=tf.AUTO_REUSE)
 
         return z
 
