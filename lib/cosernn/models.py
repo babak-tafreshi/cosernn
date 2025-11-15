@@ -297,7 +297,12 @@ class CoSeRNN():
         inputs_org = inputs # save the original inputs
         targets = targets_listen # we focus on predicting listened tracks during model training.
 
-        user_f_emb_vals = tf.layers.dense(user_f_emb_vals, args['rnnsize'], activation='relu', name='init_features', reuse=tf.AUTO_REUSE)
+        user_f_emb_vals = tf.compat.v1.keras.layers.Dense(
+    args['rnnsize'],
+    activation='relu',
+    name='init_features'
+)(user_f_emb_vals)
+
 
         def context_rnn_run(inputs):
             choices = [inputs, inputs_contexts, number_of_tracks_in_sessions, time_since_last_session, top_context, top_context_future]
